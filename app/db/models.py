@@ -4,16 +4,19 @@ from tortoise.models import Model
 
 
 class User(Model):
-    id = fields.IntField(pk=True)
-    first_name = fields.CharField(max_length=50)
-    last_name = fields.CharField(max_length=50)
-    other_name = fields.CharField(max_length=50, null=True)
-    email = fields.CharField(max_length=255, unique=True)
-    phone = fields.CharField(max_length=20, null=True)
-    birthday = fields.DateField(null=True)
-    is_admin = fields.BooleanField(default=False)
-    city = fields.IntField(null=True)
-    additional_info = fields.TextField(null=True)
+    """
+    Модель пользователя для системы
+    """
+    id = fields.IntField(pk=True,help_text="уникальный номер пользователя")
+    first_name = fields.CharField(max_length=50,help_text="имя пользоваля")
+    last_name = fields.CharField(max_length=50,help_text="фамилия пользователя")
+    other_name = fields.CharField(max_length=50, null=True,help_text="отчество пользователя")
+    email = fields.CharField(max_length=255, unique=True,help_text="электронная почта")
+    phone = fields.CharField(max_length=20, null=True,help_text="номер телефона")
+    birthday = fields.DateField(null=True,help_text="дата рождения")
+    is_admin = fields.BooleanField(default=False, help_text="флаг на админа")
+    city = fields.IntField(null=True,help_text="город")
+    additional_info = fields.TextField(null=True,help_text="дополнитльеная ифнормация")
 
     class Meta:
         table = "users"

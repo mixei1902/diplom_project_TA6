@@ -6,6 +6,9 @@ from app.schemas.user_schema import CreateUser, UpdateUser
 
 
 async def get_user_by_id(user_id: int):
+    """
+    Получить пользователя по id
+    """
     try:
         return await User.get(id=user_id)
     except DoesNotExist:
@@ -13,11 +16,17 @@ async def get_user_by_id(user_id: int):
 
 
 async def create_user(user_data: CreateUser):
-    user = await User.create(**user_data.dict())
+    """
+    Создать нового пользователя
+    """
+    user = await User.create(**user_data.dict()) #ghtобразовываем объект в словарь
     return user
 
 
 async def update_user(user_id: int, user_data: UpdateUser):
+    """
+    Обновление данных существующего пользователя
+    """
     user = await get_user_by_id(user_id)
     if not user:
         return None
@@ -27,6 +36,9 @@ async def update_user(user_id: int, user_data: UpdateUser):
 
 
 async def delete_user(user_id: int):
+    """
+    Удалить пользователя по id
+    """
     user = await get_user_by_id(user_id)
     if user:
         await user.delete()

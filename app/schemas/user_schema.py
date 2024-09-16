@@ -30,4 +30,4 @@ class UserResponse(UserBase):
     is_admin: bool
 
     class Config:
-        orm_mode = True
+        orm_mode = True # для работы с Tortoise ORM
