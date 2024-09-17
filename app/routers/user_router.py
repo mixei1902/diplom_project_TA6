@@ -1,8 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from h11 import Response
+from fastapi import APIRouter, Depends, HTTPException, status, Response
 
-from app.core.auth import create_access_token
-from app.schemas.user_schema import UserResponse, CreateUser, UpdateUser, Token, LoginModel
+from app.core.auth import create_access_token, get_current_user
+from app.schemas.user_schema import UserResponse, CreateUser, UpdateUser, LoginModel, UsersListResponseModel
 from app.services.user_service import UserService
 
 router = APIRouter()
@@ -14,20 +13,27 @@ async def register_user(user: CreateUser):
     return await UserService.create_user_service(user)
 
 
-# Эндпоинт для логина пользователя
-@router.post("/login", response_model=Token)
-async def login_user(login_data: LoginModel):
+# Эндпоинт для входа пользователя
+@router.post("/login")
+async def login_user(login_data: LoginModel, response: Response):
     user = await UserService.authenticate_user(login_data.email, login_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",
-            headers={"WWW-Authenticate": "Bearer"},
         )
     access_token = create_access_token(data={"sub": user.email})
-    return {"access_token": access_token, "token_type": "bearer"}
+    # Устанавливаем JWT-токен в cookie
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        samesite='lax'  # Настройте по необходимости
+    )
+    return {"message": "Login successful"}
 
 
+# Эндпоинт для выхода пользователя
 @router.get("/logout")
 async def logout_user(response: Response):
     response.delete_cookie(key="access_token")
@@ -36,32 +42,47 @@ async def logout_user(response: Response):
 
 # Получение данных текущего пользователя
 @router.get("/users/current", response_model=UserResponse)
-async def get_current_user_data(current_user: UserResponse = Depends(UserService.get_current_user)):
+async def get_current_user_data(current_user=Depends(get_current_user)):
     return current_user
 
 
-# Получение данных пользователя по ID (доступ для администратора)
-@router.get("/users/{user_id}", response_model=UserResponse)
-async def get_user(user_id: int, current_user: UserResponse = Depends(UserService.get_current_user)):
-    user = await UserService.get_user_by_id(user_id)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    return user
-
-
-# Обновление данных пользователя
-@router.patch("/users/{user_id}", response_model=UserResponse)
-async def update_user(user_id: int, user: UpdateUser,
-                      current_user: UserResponse = Depends(UserService.get_current_user)):
-    updated_user = await UserService.update_user(user_id, user)
+# Обновление данных текущего пользователя
+@router.patch("/users/current", response_model=UserResponse)
+async def update_current_user(
+        user_data: UpdateUser,
+        current_user=Depends(get_current_user)
+):
+    updated_user = await UserService.update_user(current_user.id, user_data)
     if not updated_user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        raise HTTPException(status_code=404, detail="User not found")
     return updated_user
 
 
-# Удаление пользователя
-@router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user(user_id: int, current_user: UserResponse = Depends(UserService.get_current_user)):
-    deleted = await UserService.delete_user(user_id)
-    if not deleted:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+# Получение списка пользователей с пагинацией (для всех пользователей)
+@router.get("/users", response_model=UsersListResponseModel)
+async def get_users(
+        page: int,
+        size: int,
+        current_user=Depends(get_current_user)
+):
+    users, total = await UserService.get_users(page=page, size=size)
+    # Формируем список с ограниченной информацией
+    users_data = [
+        {
+            "id": user.id,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "email": user.email
+        }
+        for user in users
+    ]
+    return {
+        "data": users_data,
+        "meta": {
+            "pagination": {
+                "total": total,
+                "page": page,
+                "size": size
+            }
+        }
+    }

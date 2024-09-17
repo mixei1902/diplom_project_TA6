@@ -1,7 +1,6 @@
-from typing import Optional
+from typing import Optional, List, Tuple
 
-from fastapi import Depends, HTTPException
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import HTTPException, Request
 from jose import JWTError, jwt
 from passlib.hash import bcrypt
 from tortoise.exceptions import DoesNotExist
@@ -9,8 +8,6 @@ from tortoise.exceptions import DoesNotExist
 from app.core.config import settings
 from app.db.models import User
 from app.schemas.user_schema import CreateUser, UpdateUser
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 
 class UserService:
@@ -59,12 +56,9 @@ class UserService:
         user = await UserService.get_user_by_id(user_id)
         if user:
             # Обновление полей, если они предоставлены
-            user.first_name = user_data.first_name or user.first_name
-            user.last_name = user_data.last_name or user.last_name
-            user.other_name = user_data.other_name or user.other_name
-            user.email = user_data.email or user.email
-            user.phone = user_data.phone or user.phone
-            user.birthday = user_data.birthday or user.birthday
+            update_data = user_data.dict(exclude_unset=True)
+            for field, value in update_data.items():
+                setattr(user, field, value)
             await user.save()
             return user
         return None
@@ -81,30 +75,43 @@ class UserService:
         return False
 
     @staticmethod
-    async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
+    async def get_current_user(request: Request) -> User:
         """
-        Извлекает текущего пользователя из токена JWT.
+        Извлекает текущего пользователя из JWT-токена, хранящегося в cookies.
         """
-        credentials_exception = HTTPException(
-            status_code=401,
-            detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        token = request.cookies.get("access_token")
+        if not token:
+            raise HTTPException(
+                status_code=401,
+                detail="Not authenticated",
+            )
         try:
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+            payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
             email: str = payload.get("sub")
             if email is None:
-                raise credentials_exception
+                raise HTTPException(
+                    status_code=401,
+                    detail="Invalid authentication credentials",
+                )
         except JWTError:
-            raise credentials_exception
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid authentication credentials",
+            )
 
         user = await User.get(email=email)
         if user is None:
-            raise credentials_exception
+            raise HTTPException(
+                status_code=401,
+                detail="User not found",
+            )
         return user
 
     @staticmethod
     async def authenticate_user(email: str, password: str) -> Optional[User]:
+        """
+        Аутентифицирует пользователя по email и паролю.
+        """
         try:
             user = await User.get(email=email)
             if not bcrypt.verify(password, user.password_hash):
@@ -113,4 +120,30 @@ class UserService:
         except DoesNotExist:
             return None
 
+    @staticmethod
+    async def get_users(page: int, size: int) -> Tuple[List[User], int]:
+        """
+        Получает список пользователей с пагинацией.
+        """
+        total = await User.all().count()
+        users = await User.all().offset((page - 1) * size).limit(size)
+        return users, total
 
+    async def get_user_by_email(email: str) -> Optional[User]:
+        """
+        Получает пользователя по его email.
+
+        :param email: Электронная почта пользователя
+        :return: Объект пользователя или None, если пользователь не найден
+        """
+        try:
+            return await User.get(email=email)
+        except DoesNotExist:
+            return None
+
+    @staticmethod
+    async def is_admin(user: User) -> bool:
+        """
+        Проверяет, является ли пользователь администратором.
+        """
+        return user.is_admin

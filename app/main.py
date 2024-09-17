@@ -7,7 +7,7 @@ from jose import JWTError
 from tortoise.exceptions import DoesNotExist
 
 from app.db.database import init_db, close_db
-from app.routers import user_router
+from app.routers import user_router, admin_router
 
 app = FastAPI(
     title="Сервис для хранения данных о пользователях",
@@ -73,6 +73,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 
 app.include_router(user_router.router)
+app.include_router(admin_router.router)
 
 
 @app.on_event("startup")

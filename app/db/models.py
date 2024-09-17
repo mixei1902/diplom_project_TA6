@@ -16,8 +16,8 @@ class User(Model):
     birthday = fields.DateField(null=True,help_text="дата рождения")
     is_admin = fields.BooleanField(default=False, help_text="флаг на админа")
     password_hash = fields.CharField(max_length=128, help_text="хэш пароля")
-    city = fields.CharField(max_length=50,null=True,help_text="город")
-    additional_info = fields.TextField(null=True,help_text="дополнитльеная ифнормация")
+    city = fields.IntField(null=True,help_text="номер региона")
+    additional_info = fields.TextField(null=True,help_text="дополнительная ифнормация")
 
     class Meta:
         table = "users"
