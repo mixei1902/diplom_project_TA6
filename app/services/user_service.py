@@ -1,11 +1,16 @@
 from typing import Optional
 
+from fastapi import Depends, HTTPException
+from fastapi.security import OAuth2PasswordBearer
+from jose import JWTError, jwt
 from passlib.hash import bcrypt
-from pydantic import EmailStr
 from tortoise.exceptions import DoesNotExist
 
+from app.core.config import settings
 from app.db.models import User
 from app.schemas.user_schema import CreateUser, UpdateUser
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 
 class UserService:
@@ -76,15 +81,24 @@ class UserService:
         return False
 
     @staticmethod
-    async def authenticate_user(email: EmailStr, password: str) -> Optional[User]:
+    async def get_current_user(token: str = Depends(oauth2_scheme)) -> User:
         """
-        Аутентифицирует пользователя по email и паролю.
+        Извлекает текущего пользователя из токена JWT.
         """
+        credentials_exception = HTTPException(
+            status_code=401,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
         try:
-            user = await User.get(email=email)
-            # Проверка пароля
-            if bcrypt.verify(password, user.password_hash):
-                return user
-        except DoesNotExist:
-            return None
-        return None
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+            email: str = payload.get("sub")
+            if email is None:
+                raise credentials_exception
+        except JWTError:
+            raise credentials_exception
+
+        user = await User.get(email=email)
+        if user is None:
+            raise credentials_exception
+        return user
