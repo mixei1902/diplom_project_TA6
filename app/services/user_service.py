@@ -102,3 +102,15 @@ class UserService:
         if user is None:
             raise credentials_exception
         return user
+
+    @staticmethod
+    async def authenticate_user(email: str, password: str) -> Optional[User]:
+        try:
+            user = await User.get(email=email)
+            if not bcrypt.verify(password, user.password_hash):
+                return None
+            return user
+        except DoesNotExist:
+            return None
+
+
