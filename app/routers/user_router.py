@@ -1,52 +1,60 @@
-from fastapi import APIRouter, HTTPException
-from tortoise.contrib.pydantic import pydantic_model_creator
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
 
-from app.db.models import User
-from app.schemas.user_schema import CreateUser, UpdateUser, UserResponse
-from app.services.user_service import create_user, update_user, get_user_by_id, delete_user
+from app.core.auth import create_access_token
+from app.schemas.user_schema import UserResponse, CreateUser, UpdateUser, Token
+from app.services.user_service import create_user_service, authenticate_user, get_current_user, get_user_by_id_service, update_user_service, delete_user_service
 
 router = APIRouter()
 
-User_Pydantic = pydantic_model_creator(User)  # создание модели из Tortoise ORM
+
+# Эндпоинт для регистрации пользователя
+@router.post("/register", response_model=UserResponse)
+async def register_user(user: CreateUser):
+    return await create_user_service(user)
 
 
-@router.post("/users", response_model=UserResponse)
-async def create_user_route(user: CreateUser):
-    """
-    Создать нового пользователя
-    """
-    created_user = await create_user(user)
-    return created_user
-
-
-@router.get("/users/{user_id}", response_model=UserResponse)
-async def get_user(user_id: int):
-    """
-    Получить данные пользователя
-    """
-    user = await get_user_by_id(user_id)
+# Эндпоинт для логина пользователя
+@router.post("/login", response_model=Token)
+async def login_user(form_data: OAuth2PasswordRequestForm = Depends()):
+    user = await authenticate_user(form_data.username, form_data.password)
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token = create_access_token(data={"sub": user.email})
+    return {"access_token": access_token, "token_type": "bearer"}
+
+
+# Получение данных текущего пользователя
+@router.get("/users/current", response_model=UserResponse)
+async def get_current_user_data(current_user: UserResponse = Depends(get_current_user)):
+    return current_user
+
+
+# Получение данных пользователя по ID (доступ для администратора)
+@router.get("/users/{user_id}", response_model=UserResponse)
+async def get_user(user_id: int, current_user: UserResponse = Depends(get_current_user)):
+    user = await get_user_by_id_service(user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return user
 
 
+# Обновление данных пользователя
 @router.patch("/users/{user_id}", response_model=UserResponse)
-async def update_user_route(user_id: int, user: UpdateUser):
-    """
-    Оновить данные пользователя
-    """
-    updated_user = await update_user(user_id, user)
+async def update_user(user_id: int, user: UpdateUser, current_user: UserResponse = Depends(get_current_user)):
+    updated_user = await update_user_service(user_id, user)
     if not updated_user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     return updated_user
 
 
-@router.delete("/users/{user_id}")
-async def delete_user_route(user_id: int):
-    """
-    Удалить пользователя
-    """
-    success = await delete_user(user_id)
-    if not success:
-        raise HTTPException(status_code=404, detail="User not found")
-    return {"message": "User deleted successfully"}
+# Удаление пользователя
+@router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_user(user_id: int, current_user: UserResponse = Depends(get_current_user)):
+    deleted = await delete_user_service(user_id)
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
