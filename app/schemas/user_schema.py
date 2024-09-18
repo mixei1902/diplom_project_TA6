@@ -52,7 +52,7 @@ class LoginModel(BaseModel):
     password: str
 
 
-class Token(BaseModel):
+class TokenRespone(BaseModel):
     access_token: str
     token_type: str
 

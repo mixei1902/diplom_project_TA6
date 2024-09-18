@@ -30,7 +30,11 @@ async def login_user(login_data: LoginModel, response: Response):
         httponly=True,
         samesite='lax'
     )
-    return {"message": "Login successful"}
+    return {
+        "message": "Login successful",
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
 
 
 # Эндпоинт для выхода пользователя
