@@ -22,56 +22,77 @@ logger = logging.getLogger(__name__)
 # Обработчик ошибок для внутренних серверных ошибок
 @app.exception_handler(Exception)
 async def internal_server_error_handler(request: Request, exc: Exception):
-    logger.error(f"Internal Server Error: {exc}")
+    # Логируем подробности ошибки
+    logger.error(f"Internal Server Error: {repr(exc)}")
+    # Возвращаем ответ в формате, указанном в спецификации
     return JSONResponse(
         status_code=500,
         content={"message": "что-то пошло не так, мы уже исправляем эту ошибку"},
     )
 
 
-# Обработчик ошибок для валидации данных (Pydantic)
+# Обработчик ошибок для ошибок валидации данных (RequestValidationError)
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    logger.warning(f"Validation Error: {exc}")
+    # Логируем подробности ошибки
+    logger.warning(f"Validation Error: {exc.errors()}")
+    # Возвращаем ответ в формате, указанном в спецификации
     return JSONResponse(
         status_code=422,
         content={
+            "code": 422,
             "message": "Ошибка валидации данных",
-            "errors": exc.errors(),
+            "details": exc.errors()
         },
     )
 
 
-# Обработчик ошибок, если запись не найдена (например, пользователь)
+# Обработчик ошибок, если запись не найдена (DoesNotExist)
 @app.exception_handler(DoesNotExist)
 async def does_not_exist_handler(request: Request, exc: DoesNotExist):
-    logger.warning(f"Entity Not Found: {exc}")
+    # Логируем подробности ошибки
+    logger.warning(f"Entity Not Found: {repr(exc)}")
+    # Возвращаем ответ в формате, указанном в спецификации
     return JSONResponse(
         status_code=404,
-        content={"message": "Объект не найден"},
+        content={
+            "code": 404,
+            "message": "Объект не найден"
+        },
     )
 
 
-# Обработчик ошибок для JWT авторизации
+# Обработчик ошибок для JWT авторизации (JWTError)
 @app.exception_handler(JWTError)
 async def jwt_error_handler(request: Request, exc: JWTError):
-    logger.warning(f"JWT Error: {exc}")
+    # Логируем подробности ошибки
+    logger.warning(f"JWT Error: {repr(exc)}")
+    # Возвращаем ответ в формате, указанном в спецификации
     return JSONResponse(
         status_code=401,
-        content={"message": "Ошибка авторизации. Неверный токен."},
+        content={
+            "code": 401,
+            "message": "Ошибка авторизации. Неверный токен."
+        },
     )
 
 
 # Обработчик ошибок авторизации и прав доступа (HTTPException)
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
-    logger.warning(f"Authorization Error: {exc.detail}")
+    # Логируем подробности ошибки
+    logger.warning(f"HTTP Exception: {exc.detail}")
+    # Возвращаем ответ в формате, указанном в спецификации
     return JSONResponse(
         status_code=exc.status_code,
-        content={"message": exc.detail},
+        content={
+            "code": exc.status_code,
+            "message": exc.detail
+        },
     )
 
 
+# Подключение роутеров
 app.include_router(user_router.router)
 app.include_router(admin_router.router)
 

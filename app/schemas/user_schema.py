@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Optional, List
+from typing import Optional, List, Any
 
 from pydantic import BaseModel, EmailStr
 
@@ -40,6 +40,9 @@ class UpdateUser(BaseModel):
     birthday: Optional[date] = None
     city: Optional[str] = None
     additional_info: Optional[str] = None
+
+    class Config:
+        orm_mode = True
 
 
 class LoginModel(BaseModel):
@@ -107,6 +110,9 @@ class PrivateUpdateUser(BaseModel):
     is_admin: Optional[bool] = None
     password: Optional[str] = None
 
+    class Config:
+        orm_mode = True
+
 
 # Модель для детального ответа о пользователе (администратор)
 class PrivateUserResponse(BaseModel):
@@ -123,3 +129,14 @@ class PrivateUserResponse(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class ErrorResponseModel(BaseModel):
+    code: int
+    message: str
+
+
+class ValidationErrorResponseModel(BaseModel):
+    code: int
+    message: str
+    details: List[Any]

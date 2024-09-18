@@ -19,8 +19,8 @@ async def login_user(login_data: LoginModel, response: Response):
     user = await UserService.authenticate_user(login_data.email, login_data.password)
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Неверные учетные данные"
         )
     access_token = create_access_token(data={"sub": user.email})
     # Устанавливаем JWT-токен в cookie
@@ -28,7 +28,7 @@ async def login_user(login_data: LoginModel, response: Response):
         key="access_token",
         value=access_token,
         httponly=True,
-        samesite='lax'  # Настройте по необходимости
+        samesite='lax'
     )
     return {"message": "Login successful"}
 

@@ -1,3 +1,4 @@
+import logging
 from typing import Optional, List, Tuple
 
 from fastapi import HTTPException, Request
@@ -9,16 +10,18 @@ from app.core.config import settings
 from app.db.models import User
 from app.schemas.user_schema import CreateUser, UpdateUser
 
+logger = logging.getLogger(__name__)
+
 
 class UserService:
     """
-    Класс для управления пользователями.
+    Класс для управления пользователями
     """
 
     @staticmethod
     async def create_user_service(user_data: CreateUser) -> User:
         """
-        Создает нового пользователя на основе переданных данных.
+        Создает нового пользователя на основе переданных данных
         """
         # Хеширование пароля
         hashed_password = bcrypt.hash(user_data.password)
@@ -41,7 +44,7 @@ class UserService:
     @staticmethod
     async def get_user_by_id(user_id: int) -> Optional[User]:
         """
-        Получает пользователя по его ID.
+        Получает пользователя по его ID
         """
         try:
             return await User.get(id=user_id)
@@ -51,7 +54,7 @@ class UserService:
     @staticmethod
     async def update_user(user_id: int, user_data: UpdateUser) -> Optional[User]:
         """
-        Обновляет данные пользователя на основе переданных данных.
+        Обновляет данные пользователя на основе переданных данных
         """
         user = await UserService.get_user_by_id(user_id)
         if user:
@@ -66,7 +69,7 @@ class UserService:
     @staticmethod
     async def delete_user(user_id: int) -> bool:
         """
-        Удаляет пользователя по его ID.
+        Удаляет пользователя по его ID
         """
         user = await UserService.get_user_by_id(user_id)
         if user:
@@ -77,7 +80,7 @@ class UserService:
     @staticmethod
     async def get_current_user(request: Request) -> User:
         """
-        Извлекает текущего пользователя из JWT-токена, хранящегося в cookies.
+        Извлекает текущего пользователя из JWT-токена, хранящегося в cookies
         """
         token = request.cookies.get("access_token")
         if not token:
@@ -110,20 +113,22 @@ class UserService:
     @staticmethod
     async def authenticate_user(email: str, password: str) -> Optional[User]:
         """
-        Аутентифицирует пользователя по email и паролю.
+        Аутентифицирует пользователя по email и паролю
         """
         try:
             user = await User.get(email=email)
             if not bcrypt.verify(password, user.password_hash):
+                logger.warning(f"Неуспешная попытка входа для пользователя {email}")
                 return None
             return user
         except DoesNotExist:
+            logger.warning(f"Попытка входа с несуществующим email: {email}")
             return None
 
     @staticmethod
     async def get_users(page: int, size: int) -> Tuple[List[User], int]:
         """
-        Получает список пользователей с пагинацией.
+        Получает список пользователей с пагинацией
         """
         total = await User.all().count()
         users = await User.all().offset((page - 1) * size).limit(size)
@@ -131,10 +136,7 @@ class UserService:
 
     async def get_user_by_email(email: str) -> Optional[User]:
         """
-        Получает пользователя по его email.
-
-        :param email: Электронная почта пользователя
-        :return: Объект пользователя или None, если пользователь не найден
+        Получает пользователя по его email
         """
         try:
             return await User.get(email=email)
@@ -144,6 +146,6 @@ class UserService:
     @staticmethod
     async def is_admin(user: User) -> bool:
         """
-        Проверяет, является ли пользователь администратором.
+        Проверяет, является ли пользователь администратором
         """
         return user.is_admin

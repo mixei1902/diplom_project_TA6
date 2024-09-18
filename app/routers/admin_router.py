@@ -35,9 +35,15 @@ async def get_users(
 # Эндпоинт для создания пользователя
 @router.post("", response_model=PrivateUserResponse, status_code=status.HTTP_201_CREATED)
 async def create_user(
-        user_data: PrivateCreateUser,
-        current_user=Depends(get_current_admin)
+    user_data: PrivateCreateUser,
+    current_user=Depends(get_current_admin)
 ):
+    existing_user = await UserService.get_user_by_email(user_data.email)
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Пользователь с таким email уже существует"
+        )
     user = await UserService.create_user_service(user_data)
     return user
 
