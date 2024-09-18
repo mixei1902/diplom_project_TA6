@@ -41,13 +41,13 @@ async def logout_user(response: Response):
 
 
 # Получение данных текущего пользователя
-@router.get("/users/current", response_model=UserResponse)
+@router.get("/current", response_model=UserResponse)
 async def get_current_user_data(current_user=Depends(get_current_user)):
     return current_user
 
 
 # Обновление данных текущего пользователя
-@router.patch("/users/current", response_model=UserResponse)
+@router.patch("/current", response_model=UserResponse)
 async def update_current_user(
         user_data: UpdateUser,
         current_user=Depends(get_current_user)

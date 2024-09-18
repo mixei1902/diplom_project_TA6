@@ -4,6 +4,7 @@ from typing import Optional, List, Any
 from pydantic import BaseModel, EmailStr
 
 
+# Модель для информации о пользователе
 class UserResponse(BaseModel):
     id: int
     first_name: str
@@ -18,6 +19,7 @@ class UserResponse(BaseModel):
         orm_mode = True
 
 
+# Модель для создания пользователя
 class CreateUser(BaseModel):
     first_name: str
     last_name: str
@@ -27,10 +29,10 @@ class CreateUser(BaseModel):
     birthday: Optional[date] = None
     password: str
     is_admin: bool
-    city: Optional[str] = None
+    city: Optional[int] = None
     additional_info: Optional[str] = None
 
-
+# Модель для обновления пользователя
 class UpdateUser(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
@@ -38,13 +40,13 @@ class UpdateUser(BaseModel):
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
     birthday: Optional[date] = None
-    city: Optional[str] = None
+    city: Optional[int] = None
     additional_info: Optional[str] = None
 
     class Config:
         orm_mode = True
 
-
+# Модель для авторизации пользователя
 class LoginModel(BaseModel):
     email: EmailStr
     password: str

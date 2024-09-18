@@ -22,7 +22,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     """
     Создает JWT-токен для аутентификации пользователя.
 
-    :param data: Данные для включения в токен (например, {"sub": email пользователя})
+    :param data: Данные для включения в токен
     :param expires_delta: Время жизни токена
     :return: Сгенерированный JWT-токен в виде строки
     """

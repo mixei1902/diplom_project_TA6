@@ -9,7 +9,7 @@ from app.schemas.user_schema import (
 )
 from app.services.user_service import UserService
 
-router = APIRouter(prefix="/private/users", tags=["admin"])
+router = APIRouter(tags=["admin"])
 
 
 # Эндпоинт для получения списка пользователей с пагинацией

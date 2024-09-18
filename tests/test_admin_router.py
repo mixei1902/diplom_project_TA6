@@ -3,6 +3,7 @@ from httpx import AsyncClient
 
 from app.core.auth import get_password_hash
 from app.db.models import User
+from app.services.user_service import UserService
 
 
 @pytest.mark.asyncio
@@ -41,3 +42,20 @@ async def test_non_admin_cannot_access_admin_endpoints(client: AsyncClient):
     # Пытаемся получить доступ к административному эндпоинту
     response = await client.get("/private/users?page=1&size=10", cookies=cookies)
     assert response.status_code == 403
+
+
+# async def test_admin_create_user(authenticated_admin_client: AsyncClient):
+#     Тестирование cоздания пользователя администратором
+#     new_user_data = {
+#         "first_name": "New",
+#         "last_name": "User",
+#         "email": "newuser@example.com",
+#         "password": "newpassword",
+#         "is_admin": False
+#     }
+#     response = await authenticated_admin_client.post("/private/users", json=new_user_data)
+#     assert response.status_code == 201
+#     data = response.json()
+#     assert data["email"] == "newuser@example.com"
+#     # Удаление созданного пользователя
+#     await UserService.delete_user(data["id"])

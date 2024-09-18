@@ -1,6 +1,4 @@
 # Настройка подключения к базе данных
-
-
 from tortoise import Tortoise
 from app.core.config import settings
 
@@ -8,7 +6,7 @@ TORTOISE_ORM = {
     "connections": {"default": settings.database_url},
     "apps": {
         "models": {
-            "models": ["app.db.models", "aerich.models"],  # Добавляем модели и aerich для миграций
+            "models": ["app.db.models", "aerich.models"],
             "default_connection": "default",
         },
     },
