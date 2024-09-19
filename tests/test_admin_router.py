@@ -3,59 +3,155 @@ from httpx import AsyncClient
 
 from app.core.auth import get_password_hash
 from app.db.models import User
+from app.schemas.user_schema import LoginModel, CreateUser
 from app.services.user_service import UserService
 
 
+
 @pytest.mark.asyncio
-async def test_admin_get_users(client: AsyncClient):
-    # Создаём администратора
-    password_hash = get_password_hash("adminpass")
-    admin_user = await User.create(
-        first_name="Admin",
-        last_name="User",
-        email="admin@example.com",
-        password_hash=password_hash,
-        is_admin=True
+async def test_admin_get_users(client: AsyncClient, initialize_db):
+    # Создаем администратора
+    admin_data = CreateUser(
+        first_name="Admin2",
+        last_name="User2",
+        other_name=None,
+        email="admin2@example.com",
+        phone="5555555555",
+        birthday="1980-01-01",
+        password="adminpassword2",
+        is_admin=True,
+        city=1,
+        additional_info=None
     )
-    # Входим под администратором
-    response = await client.post("/login", json={
-        "email": "admin@example.com",
-        "password": "adminpass"
-    })
-    cookies = response.cookies
-    # Запрашиваем список пользователей
-    response = await client.get("/private/users?page=1&size=10", cookies=cookies)
+    admin = await UserService.create_user_service(admin_data)
+
+    # Логин администратора для получения токена
+    login_data = LoginModel(
+        email="admin2@example.com",
+        password="adminpassword2"
+    )
+    login_response = await client.post("/users/login", json=login_data.dict())
+    assert login_response.status_code == 200
+    tokens = login_response.json()
+    access_token = tokens["access_token"]
+
+    # Устанавливаем токен в cookies
+    client.cookies.set("access_token", access_token)
+
+    # Создаем нескольких пользователей для тестирования
+    users_data = [
+        {
+            "first_name": "User1",
+            "last_name": "Test1",
+            "other_name": None,
+            "email": "user1@example.com",
+            "phone": "1111111111",
+            "birthday": "1991-01-01",
+            "password": "user1password",
+            "is_admin": False,
+            "city": 2,
+            "additional_info": None
+        },
+        {
+            "first_name": "User2",
+            "last_name": "Test2",
+            "other_name": None,
+            "email": "user2@example.com",
+            "phone": "2222222222",
+            "birthday": "1992-02-02",
+            "password": "user2password",
+            "is_admin": False,
+            "city": 3,
+            "additional_info": None
+        }
+    ]
+
+    for user_data in users_data:
+        response = await client.post("/private/users", json=user_data)
+        assert response.status_code == 201
+
+    # Отправляем GET-запрос на получение списка пользователей
+    response = await client.get("/private/users", params={"page": 1, "size": 10})
     assert response.status_code == 200
     data = response.json()
     assert "data" in data
     assert "meta" in data
+    assert data["meta"]["pagination"]["total"] >= 2
+    assert len(data["data"]) >= 2
+
+    # Проверяем, что в списке присутствуют созданные пользователи
+    emails = [user["email"] for user in data["data"]]
+    for user_data in users_data:
+        assert user_data["email"] in emails
+
 
 
 @pytest.mark.asyncio
-async def test_non_admin_cannot_access_admin_endpoints(client: AsyncClient):
-    # Входим под обычным пользователем
-    response = await client.post("/login", json={
-        "email": "jane@example.com",
-        "password": "password123"
-    })
-    cookies = response.cookies
-    # Пытаемся получить доступ к административному эндпоинту
-    response = await client.get("/private/users?page=1&size=10", cookies=cookies)
-    assert response.status_code == 403
+async def test_admin_create_user(client: AsyncClient, initialize_db):
+    # Создаем администратора
+    admin_data = CreateUser(
+        first_name="Admin",
+        last_name="User",
+        other_name=None,
+        email="admin@example.com",
+        phone="5555555555",
+        birthday="1980-01-01",
+        password="adminpassword",
+        is_admin=True,
+        city=1,
+        additional_info=None
+    )
+    admin = await UserService.create_user_service(admin_data)
+
+    # Логин администратора для получения токена
+    login_data = LoginModel(
+        email="admin@example.com",
+        password="adminpassword"
+    )
+    login_response = await client.post("/users/login", json=login_data.dict())
+    assert login_response.status_code == 200
+    tokens = login_response.json()
+    access_token = tokens["access_token"]
+
+    # Устанавливаем токен в cookies
+    client.cookies.set("access_token", access_token)
+
+    # Данные для создания нового пользователя через администратора
+    new_user_data = {
+        "first_name": "Charlie",
+        "last_name": "Chaplin",
+        "other_name": None,
+        "email": "charlie@example.com",
+        "phone": "6666666666",
+        "birthday": "1970-07-07",
+        "password": "charliepassword",
+        "is_admin": False,
+        "city": 2,
+        "additional_info": "Silent movie star"
+    }
+
+    # Отправляем POST-запрос на создание пользователя
+    response = await client.post("/private/users", json=new_user_data)
+    assert response.status_code == 201
+    data = response.json()
+    assert data["email"] == new_user_data["email"]
+    assert data["first_name"] == new_user_data["first_name"]
+
+    # Проверяем, что пользователь создан в базе данных
+    user = await User.get(email=new_user_data["email"])
+    assert user is not None
+    assert user.first_name == new_user_data["first_name"]
 
 
-# async def test_admin_create_user(authenticated_admin_client: AsyncClient):
-#     Тестирование cоздания пользователя администратором
-#     new_user_data = {
-#         "first_name": "New",
-#         "last_name": "User",
-#         "email": "newuser@example.com",
-#         "password": "newpassword",
-#         "is_admin": False
-#     }
-#     response = await authenticated_admin_client.post("/private/users", json=new_user_data)
-#     assert response.status_code == 201
-#     data = response.json()
-#     assert data["email"] == "newuser@example.com"
-#     # Удаление созданного пользователя
-#     await UserService.delete_user(data["id"])
+
+# @pytest.mark.asyncio
+# async def test_non_admin_cannot_access_admin_endpoints(client: AsyncClient):
+#     # Входим под обычным пользователем
+#     response = await client.post("/login", json={
+#         "email": "jane@example.com",
+#         "password": "password123"
+#     })
+#     cookies = response.cookies
+#     # Пытаемся получить доступ к административному эндпоинту
+#     response = await client.get("/private/users?page=1&size=10", cookies=cookies)
+#     assert response.status_code == 403

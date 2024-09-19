@@ -1,12 +1,10 @@
-# Основная конфигурация приложения (переменные среды, настройки базы данных)
-from typing import Optional
-
+from typing import Optional, Dict
 from pydantic import BaseSettings, PostgresDsn, validator
 
 
 class Settings(BaseSettings):
     # Настройки базы данных
-    db_host: Optional[str] = "localhost"
+    db_host: Optional[str] = "db"
     db_port: Optional[str] = "5432"
     db_user: Optional[str] = "postgres"
     db_password: Optional[str] = "12345"
@@ -15,7 +13,7 @@ class Settings(BaseSettings):
     test_database_url: Optional[PostgresDsn] = "postgres://postgres:12345@localhost:5432/TA6_test"
 
     # Настройки приложения
-    secret_key: str  = "secret_key"
+    secret_key: str = "secret_key"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
 

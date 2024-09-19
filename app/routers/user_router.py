@@ -31,7 +31,7 @@ async def login_user(login_data: LoginModel, response: Response):
         samesite='lax'
     )
     return {
-        "message": "Login successful",
+        "message": "Авторизация успе",
         "access_token": access_token,
         "token_type": "bearer"
     }
