@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     test_database_url: Optional[PostgresDsn] = "postgres://postgres:12345@localhost:5432/TA6_test"
 
     # Настройки приложения
-    secret_key: str  = "your_secret_key"
+    secret_key: str  = "secret_key"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
 
