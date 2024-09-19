@@ -1,7 +1,6 @@
 import pytest
 from httpx import AsyncClient
 
-from app.core.auth import get_password_hash
 from app.db.models import User
 from app.schemas.user_schema import LoginModel, CreateUser
 from app.services.user_service import UserService
