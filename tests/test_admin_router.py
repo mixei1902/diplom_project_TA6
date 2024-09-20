@@ -11,13 +11,13 @@ from app.services.user_service import UserService
 async def test_admin_get_users(client: AsyncClient, initialize_db):
     # Создаем администратора
     admin_data = CreateUser(
-        first_name="Admin2",
-        last_name="User2",
+        first_name="Admin8",
+        last_name="User8",
         other_name=None,
-        email="admin2@example.com",
+        email="admin8@example.com",
         phone="5555555555",
         birthday="1980-01-01",
-        password="adminpassword2",
+        password="adminpassword8",
         is_admin=True,
         city=1,
         additional_info=None
@@ -26,8 +26,8 @@ async def test_admin_get_users(client: AsyncClient, initialize_db):
 
     # Логин администратора для получения токена
     login_data = LoginModel(
-        email="admin2@example.com",
-        password="adminpassword2"
+        email="admin8@example.com",
+        password="adminpassword8"
     )
     login_response = await client.post("/users/login", json=login_data.dict())
     assert login_response.status_code == 200
@@ -40,10 +40,10 @@ async def test_admin_get_users(client: AsyncClient, initialize_db):
     # Создаем нескольких пользователей для тестирования
     users_data = [
         {
-            "first_name": "User1",
-            "last_name": "Test1",
+            "first_name": "User8",
+            "last_name": "Test8",
             "other_name": None,
-            "email": "user1@example.com",
+            "email": "user8@example.com",
             "phone": "1111111111",
             "birthday": "1991-01-01",
             "password": "user1password",
@@ -52,13 +52,13 @@ async def test_admin_get_users(client: AsyncClient, initialize_db):
             "additional_info": None
         },
         {
-            "first_name": "User2",
-            "last_name": "Test2",
+            "first_name": "User9",
+            "last_name": "Test9",
             "other_name": None,
-            "email": "user2@example.com",
+            "email": "user9@example.com",
             "phone": "2222222222",
             "birthday": "1992-02-02",
-            "password": "user2password",
+            "password": "user9password",
             "is_admin": False,
             "city": 3,
             "additional_info": None
