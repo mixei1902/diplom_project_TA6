@@ -1,3 +1,5 @@
+import uuid
+
 import pytest
 from httpx import AsyncClient
 
@@ -6,15 +8,21 @@ from app.schemas.user_schema import LoginModel, CreateUser
 from app.services.user_service import UserService
 
 
+def generate_unique_email(prefix="user"):
+    """Генерирует уникальный email для тестов."""
+    unique_id = uuid.uuid4()
+    return f"{prefix}_{unique_id}@example.com"
+
 
 @pytest.mark.asyncio
 async def test_admin_get_users(client: AsyncClient, initialize_db):
-    # Создаем администратора
+    # Создаем администратора с уникальным email
+    admin_email = generate_unique_email("admin")
     admin_data = CreateUser(
         first_name="Admin8",
         last_name="User8",
         other_name=None,
-        email="admin8@example.com",
+        email=admin_email,
         phone="5555555555",
         birthday="1980-01-01",
         password="adminpassword8",
@@ -26,7 +34,7 @@ async def test_admin_get_users(client: AsyncClient, initialize_db):
 
     # Логин администратора для получения токена
     login_data = LoginModel(
-        email="admin8@example.com",
+        email=admin_email,
         password="adminpassword8"
     )
     login_response = await client.post("/users/login", json=login_data.dict())
@@ -37,13 +45,13 @@ async def test_admin_get_users(client: AsyncClient, initialize_db):
     # Устанавливаем токен в cookies
     client.cookies.set("access_token", access_token)
 
-    # Создаем нескольких пользователей для тестирования
+    # Создаем нескольких пользователей для тестирования с уникальными email
     users_data = [
         {
             "first_name": "User8",
             "last_name": "Test8",
             "other_name": None,
-            "email": "user8@example.com",
+            "email": generate_unique_email("user8"),
             "phone": "1111111111",
             "birthday": "1991-01-01",
             "password": "user1password",
@@ -55,7 +63,7 @@ async def test_admin_get_users(client: AsyncClient, initialize_db):
             "first_name": "User9",
             "last_name": "Test9",
             "other_name": None,
-            "email": "user9@example.com",
+            "email": generate_unique_email("user9"),
             "phone": "2222222222",
             "birthday": "1992-02-02",
             "password": "user9password",
@@ -65,34 +73,50 @@ async def test_admin_get_users(client: AsyncClient, initialize_db):
         }
     ]
 
-    for user_data in users_data:
-        response = await client.post("/private/users", json=user_data)
-        assert response.status_code == 201
+    created_users = []
 
-    # Отправляем GET-запрос на получение списка пользователей
-    response = await client.get("/private/users", params={"page": 1, "size": 10})
-    assert response.status_code == 200
-    data = response.json()
-    assert "data" in data
-    assert "meta" in data
-    assert data["meta"]["pagination"]["total"] >= 2
-    assert len(data["data"]) >= 2
+    try:
+        for user_data in users_data:
+            response = await client.post("/private/users", json=user_data)
+            assert response.status_code == 201, f"Не удалось создать пользователя: {user_data['email']}"
+            created_user = await User.get(email=user_data["email"])
+            created_users.append(created_user)
 
-    # Проверяем, что в списке присутствуют созданные пользователи
-    emails = [user["email"] for user in data["data"]]
-    for user_data in users_data:
-        assert user_data["email"] in emails
+        # Отправляем GET-запрос на получение списка пользователей
+        response = await client.get("/private/users", params={"page": 1, "size": 10})
+        assert response.status_code == 200, "Не удалось получить список пользователей."
+        data = response.json()
+        assert "data" in data
+        assert "meta" in data
+        assert data["meta"]["pagination"]["total"] >= len(
+            users_data), "Общее количество пользователей меньше ожидаемого."
+        assert len(data["data"]) >= len(users_data), "Количество пользователей в списке меньше ожидаемого."
 
+        # Проверяем, что в списке присутствуют созданные пользователи
+        emails = [user["email"] for user in data["data"]]
+        for user_data in users_data:
+            assert user_data["email"] in emails, f"Пользователь {user_data['email']} не найден в списке."
+
+    finally:
+        # Удаляем созданных пользователей
+        for user in created_users:
+            delete_result = await UserService.delete_user(user.id)
+            assert delete_result, f"Не удалось удалить пользователя с ID {user.id}."
+
+        # Удаляем администратора
+        delete_result = await UserService.delete_user(admin.id)
+        assert delete_result, f"Не удалось удалить администратора с ID {admin.id}."
 
 
 @pytest.mark.asyncio
 async def test_admin_create_user(client: AsyncClient, initialize_db):
-    # Создаем администратора
+    # Создаем администратора с уникальным email
+    admin_email = generate_unique_email("admin")
     admin_data = CreateUser(
         first_name="Admin",
         last_name="User",
         other_name=None,
-        email="admin@example.com",
+        email=admin_email,
         phone="5555555555",
         birthday="1980-01-01",
         password="adminpassword",
@@ -104,7 +128,7 @@ async def test_admin_create_user(client: AsyncClient, initialize_db):
 
     # Логин администратора для получения токена
     login_data = LoginModel(
-        email="admin@example.com",
+        email=admin_email,
         password="adminpassword"
     )
     login_response = await client.post("/users/login", json=login_data.dict())
@@ -115,12 +139,13 @@ async def test_admin_create_user(client: AsyncClient, initialize_db):
     # Устанавливаем токен в cookies
     client.cookies.set("access_token", access_token)
 
-    # Данные для создания нового пользователя через администратора
+    # Данные для создания нового пользователя через администратора с уникальным email
+    new_user_email = generate_unique_email("charlie")
     new_user_data = {
         "first_name": "Charlie",
         "last_name": "Chaplin",
         "other_name": None,
-        "email": "charlie@example.com",
+        "email": new_user_email,
         "phone": "6666666666",
         "birthday": "1970-07-07",
         "password": "charliepassword",
@@ -129,28 +154,29 @@ async def test_admin_create_user(client: AsyncClient, initialize_db):
         "additional_info": "Silent movie star"
     }
 
-    # Отправляем POST-запрос на создание пользователя
-    response = await client.post("/private/users", json=new_user_data)
-    assert response.status_code == 201
-    data = response.json()
-    assert data["email"] == new_user_data["email"]
-    assert data["first_name"] == new_user_data["first_name"]
+    created_user = None
 
-    # Проверяем, что пользователь создан в базе данных
-    user = await User.get(email=new_user_data["email"])
-    assert user is not None
-    assert user.first_name == new_user_data["first_name"]
+    try:
+        # Отправляем POST-запрос на создание пользователя
+        response = await client.post("/private/users", json=new_user_data)
+        assert response.status_code == 201, "Не удалось создать нового пользователя администратором."
+        data = response.json()
+        assert data["email"] == new_user_email, "Email созданного пользователя не совпадает."
+        assert data["first_name"] == new_user_data["first_name"], "Имя созданного пользователя не совпадает."
 
+        # Проверяем, что пользователь создан в базе данных
+        user = await User.get(email=new_user_email)
+        assert user is not None, "Пользователь не найден в базе данных."
+        assert user.first_name == new_user_data["first_name"], "Имя пользователя в базе данных не совпадает."
 
+        created_user = user
 
-# @pytest.mark.asyncio
-# async def test_non_admin_cannot_access_admin_endpoints(client: AsyncClient):
-#     # Входим под обычным пользователем
-#     response = await client.post("/login", json={
-#         "email": "jane@example.com",
-#         "password": "password123"
-#     })
-#     cookies = response.cookies
-#     # Пытаемся получить доступ к административному эндпоинту
-#     response = await client.get("/private/users?page=1&size=10", cookies=cookies)
-#     assert response.status_code == 403
+    finally:
+        # Удаляем созданного пользователя
+        if created_user:
+            delete_result = await UserService.delete_user(created_user.id)
+            assert delete_result, f"Не удалось удалить пользователя с ID {created_user.id}."
+
+        # Удаляем администратора
+        delete_result = await UserService.delete_user(admin.id)
+        assert delete_result, f"Не удалось удалить администратора с ID {admin.id}."

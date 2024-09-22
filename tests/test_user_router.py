@@ -22,18 +22,29 @@ async def test_register_user(client: AsyncClient):
         "additional_info": "Some additional info"
     }
 
-    response = await client.post("/users/register", json=user_data)
-    assert response.status_code == 200 or response.status_code == 201
-    data = response.json()
-    assert data["email"] == user_data["email"]
-    assert data["first_name"] == user_data["first_name"]
-    assert "password_hash" not in data  # Пароль не должен быть возвращен
+    created_user = None
 
-    # Проверка в базе данных
-    user = await User.get(email=user_data["email"])
-    assert user is not None
-    assert user.first_name == user_data["first_name"]
-    assert user.is_admin == user_data["is_admin"]
+    try:
+
+        response = await client.post("/users/register", json=user_data)
+        assert response.status_code == 200 or response.status_code == 201
+        data = response.json()
+        assert data["email"] == user_data["email"]
+        assert data["first_name"] == user_data["first_name"]
+        assert "password_hash" not in data  # Пароль не должен быть возвращен
+
+        # Проверка в базе данных
+        created_user = await User.get(email=user_data["email"])
+        assert created_user is not None
+        assert created_user.first_name == user_data["first_name"]
+        assert created_user.is_admin == user_data["is_admin"]
+
+    finally:
+        # Удаляем созданного пользователя
+        if created_user:
+            delete_result = await UserService.delete_user(created_user.id)
+            assert delete_result, f"Не удалось удалить пользователя с ID {created_user.id}."
+
 
 
 async def test_login_user(client: AsyncClient, initialize_db):
@@ -50,7 +61,7 @@ async def test_login_user(client: AsyncClient, initialize_db):
         "city": 2,
         "additional_info": None
     }
-
+    created_user = None
     # Создаем пользователя через сервис
     user = await UserService.create_user_service(CreateUser(**user_data))
 
@@ -60,12 +71,19 @@ async def test_login_user(client: AsyncClient, initialize_db):
         "password": "securepassword"
     }
 
-    response = await client.post("/users/login", json=login_data)
-    assert response.status_code == 200
-    data = response.json()
-    assert "access_token" in data
-    assert data["token_type"] == "bearer"
+    try:
+        response = await client.post("/users/login", json=login_data)
+        assert response.status_code == 200
+        data = response.json()
+        assert "access_token" in data
+        assert data["token_type"] == "bearer"
+        created_user = user
 
+    finally:
+        # Удаляем созданного пользователя
+        if created_user:
+            delete_result = await UserService.delete_user(created_user.id)
+            assert delete_result, f"Не удалось удалить пользователя с ID {created_user.id}."
 
 async def test_get_current_user_data(client: AsyncClient, initialize_db):
     # Создаем пользователя через сервис
@@ -81,6 +99,7 @@ async def test_get_current_user_data(client: AsyncClient, initialize_db):
         city=3,
         additional_info=None
     )
+    created_user = None
     user = await UserService.create_user_service(user_data)
 
     # Логин пользователя для получения токена
@@ -88,20 +107,27 @@ async def test_get_current_user_data(client: AsyncClient, initialize_db):
         email="alice@example.com",
         password="alicepassword"
     )
-    login_response = await client.post("/users/login", json=login_data.dict())
-    assert login_response.status_code == 200
-    tokens = login_response.json()
-    access_token = tokens["access_token"]
+    try:
+        login_response = await client.post("/users/login", json=login_data.dict())
+        assert login_response.status_code == 200
+        tokens = login_response.json()
+        access_token = tokens["access_token"]
 
-    # Устанавливаем токен в cookies
-    client.cookies.set("access_token", access_token)
+        # Устанавливаем токен в cookies
+        client.cookies.set("access_token", access_token)
 
-    # Отправляем запрос на получение текущего пользователя
-    response = await client.get("/users/current")
-    assert response.status_code == 200
-    data = response.json()
-    assert data["email"] == "alice@example.com"
-    assert data["first_name"] == "Alice"
+        # Отправляем запрос на получение текущего пользователя
+        response = await client.get("/users/current")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["email"] == "alice@example.com"
+        assert data["first_name"] == "Alice"
+        created_user = user
+    finally:
+        # Удаляем созданного пользователя
+        if created_user:
+            delete_result = await UserService.delete_user(created_user.id)
+            assert delete_result, f"Не удалось удалить пользователя с ID {created_user.id}."
 
 
 @pytest.mark.asyncio
@@ -119,6 +145,7 @@ async def test_update_current_user(client: AsyncClient, initialize_db):
         city=2,
         additional_info=None
     )
+    created_user = None
     user = await UserService.create_user_service(user_data)
 
     # Логин пользователя для получения токена
@@ -140,14 +167,21 @@ async def test_update_current_user(client: AsyncClient, initialize_db):
         "phone": "3344556677"
     }
 
-    # Отправляем PATCH-запрос на обновление текущего пользователя
-    response = await client.patch("/users/current", json=update_data)
-    assert response.status_code == 200
-    updated_user = response.json()
-    assert updated_user["first_name"] == "Robert"
-    assert updated_user["phone"] == "3344556677"
+    try:
+        # Отправляем PATCH-запрос на обновление текущего пользователя
+        response = await client.patch("/users/current", json=update_data)
+        assert response.status_code == 200
+        updated_user = response.json()
+        assert updated_user["first_name"] == "Robert"
+        assert updated_user["phone"] == "3344556677"
 
-    # Проверяем, что изменения отражены в базе данных
-    user_in_db = await User.get(email="bob@example.com")
-    assert user_in_db.first_name == "Robert"
-    assert user_in_db.phone == "3344556677"
+        # Проверяем, что изменения отражены в базе данных
+        user_in_db = await User.get(email="bob@example.com")
+        assert user_in_db.first_name == "Robert"
+        assert user_in_db.phone == "3344556677"
+        created_user = user
+    finally:
+        # Удаляем созданного пользователя
+        if created_user:
+            delete_result = await UserService.delete_user(created_user.id)
+            assert delete_result, f"Не удалось удалить пользователя с ID {created_user.id}."

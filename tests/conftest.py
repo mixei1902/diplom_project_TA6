@@ -1,10 +1,15 @@
 import asyncio
+import os
+
 import pytest
 from httpx import AsyncClient
 from tortoise import Tortoise
 from app.core.config import settings
 from app.db.database import init_db, close_db, get_tortoise_config
 from app.main import app
+
+# Установите переменную окружения перед импортом app
+os.environ['TESTING'] = '1'
 
 @pytest.fixture(scope="session")
 def event_loop():

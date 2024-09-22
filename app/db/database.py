@@ -28,6 +28,8 @@ async def init_db(test: bool = False):
     """
     Инициализирует подключение к базе данных и создает таблицы при необходимости.
     """
+    config = get_tortoise_config(test)
+    print(f"Initializing Tortoise ORM with config: {config['connections']['default']}")
     await Tortoise.init(config=get_tortoise_config(test))
     await Tortoise.generate_schemas()
 

@@ -1,4 +1,6 @@
 import logging
+import os
+
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
@@ -83,6 +85,7 @@ app.include_router(admin_router.router, prefix="/private/users", tags=["admin"])
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logging.info("Приложение запущено")
+    test_mode = os.getenv('TESTING') == '1'
     await init_db()
     try:
         yield
