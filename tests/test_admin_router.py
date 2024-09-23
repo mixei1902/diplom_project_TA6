@@ -1,5 +1,4 @@
 import uuid
-
 import pytest
 from httpx import AsyncClient
 
@@ -88,8 +87,7 @@ async def test_admin_get_users(client: AsyncClient, initialize_db):
         data = response.json()
         assert "data" in data
         assert "meta" in data
-        assert data["meta"]["pagination"]["total"] >= len(
-            users_data), "Общее количество пользователей меньше ожидаемого."
+        assert data["meta"]["pagination"]["total"] >= len(users_data), "Общее количество пользователей меньше ожидаемого."
         assert len(data["data"]) >= len(users_data), "Количество пользователей в списке меньше ожидаемого."
 
         # Проверяем, что в списке присутствуют созданные пользователи

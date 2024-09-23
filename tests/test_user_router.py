@@ -25,9 +25,8 @@ async def test_register_user(client: AsyncClient):
     created_user = None
 
     try:
-
         response = await client.post("/users/register", json=user_data)
-        assert response.status_code == 200 or response.status_code == 201
+        assert response.status_code in (200, 201)
         data = response.json()
         assert data["email"] == user_data["email"]
         assert data["first_name"] == user_data["first_name"]
@@ -46,7 +45,8 @@ async def test_register_user(client: AsyncClient):
             assert delete_result, f"Не удалось удалить пользователя с ID {created_user.id}."
 
 
-async def test_login_user(client: AsyncClient, initialize_db):
+@pytest.mark.asyncio
+async def test_login_user(client: AsyncClient):
     # Сначала создадим пользователя напрямую через сервис
     user_data = {
         "first_name": "Jane",
@@ -85,7 +85,8 @@ async def test_login_user(client: AsyncClient, initialize_db):
             assert delete_result, f"Не удалось удалить пользователя с ID {created_user.id}."
 
 
-async def test_get_current_user_data(client: AsyncClient, initialize_db):
+@pytest.mark.asyncio
+async def test_get_current_user_data(client: AsyncClient):
     # Создаем пользователя через сервис
     user_data = CreateUser(
         first_name="Alice",
@@ -113,8 +114,8 @@ async def test_get_current_user_data(client: AsyncClient, initialize_db):
         tokens = login_response.json()
         access_token = tokens["access_token"]
 
-        # Устанавливаем токен в cookies
-        client.cookies.set("access_token", access_token)
+        # Устанавливаем токен в заголовок Authorization
+        client.headers.update({"Authorization": f"Bearer {access_token}"})
 
         # Отправляем запрос на получение текущего пользователя
         response = await client.get("/users/current")
@@ -131,7 +132,7 @@ async def test_get_current_user_data(client: AsyncClient, initialize_db):
 
 
 @pytest.mark.asyncio
-async def test_update_current_user(client: AsyncClient, initialize_db):
+async def test_update_current_user(client: AsyncClient):
     # Создаем пользователя через сервис
     user_data = CreateUser(
         first_name="Bob",
@@ -158,8 +159,8 @@ async def test_update_current_user(client: AsyncClient, initialize_db):
     tokens = login_response.json()
     access_token = tokens["access_token"]
 
-    # Устанавливаем токен в cookies
-    client.cookies.set("access_token", access_token)
+    # Устанавливаем токен в заголовок Authorization
+    client.headers.update({"Authorization": f"Bearer {access_token}"})
 
     # Данные для обновления
     update_data = {
