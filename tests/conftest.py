@@ -1,40 +1,30 @@
-import os
-import pytest
 import asyncio
-from httpx import AsyncClient
-from tortoise import Tortoise
+import os
 
-# Установите переменную окружения перед импортом приложения
+import pytest
+from httpx import AsyncClient
+
 os.environ['TESTING'] = '1'
 
-from app.main import app  # Импортируйте после установки переменной окружения
-from app.db.database import init_db, close_db  # Убедитесь, что пути правильные
+from app.db.database import init_db, close_db
+from app.main import app
 
 @pytest.fixture(scope="session")
 def event_loop():
-    """
-    Создает и возвращает event loop для всей сессии тестов.
-    Использует дефолтный event loop policy.
-    """
-    loop = asyncio.new_event_loop()
+    """Создаёт event loop для всей сессии тестов."""
+    loop = asyncio.get_event_loop()
     yield loop
     loop.close()
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="module")
 async def initialize_db():
-    """
-    Фикстура для инициализации Tortoise ORM с использованием SQLite in-memory базы данных.
-    Автоматически применяется ко всей сессии тестов.
-    """
-    await init_db()  # Инициализация базы данных через функцию из app.db.database
+    """Инициализирует и очищает тестовую базу данных перед и после тестов."""
+    await init_db(test=True)
     yield
-    await close_db()  # Закрытие соединений после тестов
+    await close_db()
 
-@pytest.fixture
-async def client():
-    """
-    Фикстура для создания AsyncClient.
-    Использует приложение FastAPI для отправки запросов.
-    """
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+@pytest.fixture(scope="module")
+async def client(initialize_db):
+    """Предоставляет асинхронного клиента для тестирования FastAPI приложения."""
+    async with AsyncClient(app=app, base_url="http://testserver") as ac:
         yield ac
