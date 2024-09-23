@@ -31,7 +31,7 @@ async def login_user(login_data: LoginModel, response: Response):
         samesite='lax'
     )
     return {
-        "message": "Авторизация успе",
+        "message": "Авторизация успешна",
         "access_token": access_token,
         "token_type": "bearer"
     }
@@ -41,7 +41,7 @@ async def login_user(login_data: LoginModel, response: Response):
 @router.get("/logout")
 async def logout_user(response: Response):
     response.delete_cookie(key="access_token")
-    return {"message": "Logged out successfully"}
+    return {"message": "Вышел из системы успешно"}
 
 
 # Получение данных текущего пользователя
@@ -58,7 +58,7 @@ async def update_current_user(
 ):
     updated_user = await UserService.update_user(current_user.id, user_data)
     if not updated_user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
     return updated_user
 
 

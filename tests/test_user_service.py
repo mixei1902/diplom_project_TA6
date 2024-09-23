@@ -2,7 +2,6 @@ import uuid
 
 import pytest
 
-from app.db.models import User
 from app.schemas.user_schema import CreateUser, UpdateUser
 from app.services.user_service import UserService
 

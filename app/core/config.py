@@ -2,6 +2,7 @@ from typing import Optional, Dict
 from pydantic import BaseSettings, PostgresDsn, validator
 
 
+
 class Settings(BaseSettings):
     # Настройки базы данных
     db_host: Optional[str] = "db"
@@ -70,3 +71,13 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+TORTOISE_ORM = {
+    "connections": {"default": settings.database_url},
+    "apps": {
+        "models": {
+            "models": ["app.db.models", "aerich.models"],
+            "default_connection": "default",
+        },
+    },
+}

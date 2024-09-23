@@ -46,7 +46,6 @@ async def test_register_user(client: AsyncClient):
             assert delete_result, f"Не удалось удалить пользователя с ID {created_user.id}."
 
 
-
 async def test_login_user(client: AsyncClient, initialize_db):
     # Сначала создадим пользователя напрямую через сервис
     user_data = {
@@ -84,6 +83,7 @@ async def test_login_user(client: AsyncClient, initialize_db):
         if created_user:
             delete_result = await UserService.delete_user(created_user.id)
             assert delete_result, f"Не удалось удалить пользователя с ID {created_user.id}."
+
 
 async def test_get_current_user_data(client: AsyncClient, initialize_db):
     # Создаем пользователя через сервис

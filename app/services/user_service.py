@@ -86,7 +86,7 @@ class UserService:
         if not token:
             raise HTTPException(
                 status_code=401,
-                detail="Not authenticated",
+                detail="Не аутентифицирован",
             )
         try:
             payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
@@ -94,19 +94,19 @@ class UserService:
             if email is None:
                 raise HTTPException(
                     status_code=401,
-                    detail="Invalid authentication credentials",
+                    detail="Неверные учетные данные",
                 )
         except JWTError:
             raise HTTPException(
                 status_code=401,
-                detail="Invalid authentication credentials",
+                detail="Неверные учетные данные ",
             )
 
         user = await User.get(email=email)
         if user is None:
             raise HTTPException(
                 status_code=401,
-                detail="User not found",
+                detail="Пользователь не найден",
             )
         return user
 

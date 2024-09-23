@@ -1,12 +1,12 @@
 import logging
 import os
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from jose import JWTError
 from tortoise.exceptions import DoesNotExist
-from contextlib import asynccontextmanager
 
 from app.db.database import init_db, close_db
 from app.routers import user_router, admin_router
@@ -20,6 +20,7 @@ app = FastAPI(
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 # Обработчик ошибок для внутренних серверных ошибок
 @app.exception_handler(Exception)
 async def internal_server_error_handler(request: Request, exc: Exception):
@@ -28,6 +29,7 @@ async def internal_server_error_handler(request: Request, exc: Exception):
         status_code=500,
         content={"message": "что-то пошло не так, мы уже исправляем эту ошибку"},
     )
+
 
 # Обработчик ошибок для ошибок валидации данных (RequestValidationError)
 @app.exception_handler(RequestValidationError)
@@ -42,6 +44,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
         },
     )
 
+
 # Обработчик ошибок, если запись не найдена (DoesNotExist)
 @app.exception_handler(DoesNotExist)
 async def does_not_exist_handler(request: Request, exc: DoesNotExist):
@@ -53,6 +56,7 @@ async def does_not_exist_handler(request: Request, exc: DoesNotExist):
             "message": "Объект не найден"
         },
     )
+
 
 # Обработчик ошибок для JWT авторизации (JWTError)
 @app.exception_handler(JWTError)
@@ -66,6 +70,7 @@ async def jwt_error_handler(request: Request, exc: JWTError):
         },
     )
 
+
 # Обработчик ошибок авторизации и прав доступа (HTTPException)
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
@@ -78,9 +83,11 @@ async def http_exception_handler(request: Request, exc: HTTPException):
         },
     )
 
+
 # Подключение роутеров
 app.include_router(user_router.router, prefix="/users", tags=["users"])
 app.include_router(admin_router.router, prefix="/private/users", tags=["admin"])
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -92,5 +99,6 @@ async def lifespan(app: FastAPI):
     finally:
         logging.info("Приложение завершило работу")
         await close_db()
+
 
 app.router.lifespan_context = lifespan

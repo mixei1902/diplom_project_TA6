@@ -1,5 +1,7 @@
 from tortoise import Tortoise
+
 from app.core.config import settings
+
 
 def get_tortoise_config(test: bool = False):
     if test:
@@ -29,7 +31,7 @@ async def init_db(test: bool = False):
     Инициализирует подключение к базе данных и создает таблицы при необходимости.
     """
     config = get_tortoise_config(test)
-    print(f"Initializing Tortoise ORM with config: {config['connections']['default']}")
+    print(f"Инициализация Tortoise ORM with config: {config['connections']['default']}")
     await Tortoise.init(config=get_tortoise_config(test))
     await Tortoise.generate_schemas()
 

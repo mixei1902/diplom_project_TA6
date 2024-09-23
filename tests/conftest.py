@@ -4,12 +4,13 @@ import os
 import pytest
 from httpx import AsyncClient
 from tortoise import Tortoise
-from app.core.config import settings
-from app.db.database import init_db, close_db, get_tortoise_config
+
+from app.db.database import init_db, close_db
 from app.main import app
 
 # Установите переменную окружения перед импортом app
 os.environ['TESTING'] = '1'
+
 
 @pytest.fixture(scope="session")
 def event_loop():
@@ -18,6 +19,7 @@ def event_loop():
     yield loop
     loop.close()
 
+
 @pytest.fixture(scope="module")
 async def initialize_db():
     """Инициализирует и очищает тестовую базу данных перед и после тестов."""
@@ -25,6 +27,7 @@ async def initialize_db():
     yield
     await Tortoise._drop_databases()
     await close_db()
+
 
 @pytest.fixture(scope="module")
 async def client(initialize_db):

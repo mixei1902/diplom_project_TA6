@@ -74,7 +74,7 @@ async def get_current_user(request: Request) -> User:
         # Если токен отсутствует, выбрасываем исключение о неавторизованном доступе
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated",
+            detail="Не аутентифицирован",
         )
     try:
         # Декодируем JWT-токен
@@ -85,13 +85,13 @@ async def get_current_user(request: Request) -> User:
             # Если email отсутствует в токене, выбрасываем исключение
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid authentication credentials",
+                detail="Неверные учетные данные",
             )
     except JWTError:
         # Если произошла ошибка при декодировании токена, выбрасываем исключение
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication credentials",
+            detail="Неверные учетные данные",
         )
 
     # Получаем пользователя из базы данных по email
@@ -100,7 +100,7 @@ async def get_current_user(request: Request) -> User:
         # Если пользователь не найден, выбрасываем исключение
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found",
+            detail="Пользователь не найден",
         )
     return user
 
@@ -116,7 +116,7 @@ async def get_current_admin(current_user: User = Depends(get_current_user)) -> U
         # Если пользователь не администратор, выбрасываем исключение о запрете доступа
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access forbidden: administrators only"
+            detail="Доступ запрещен: только администраторы"
         )
     # Возвращаем объект текущего пользователя
     return current_user

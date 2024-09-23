@@ -56,7 +56,7 @@ async def get_user(
 ):
     user = await UserService.get_user_by_id(pk)
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
     return user
 
 
@@ -69,7 +69,7 @@ async def update_user(
 ):
     updated_user = await UserService.update_user(pk, user_data)
     if not updated_user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
     return updated_user
 
 
@@ -81,5 +81,5 @@ async def delete_user(
 ):
     deleted = await UserService.delete_user(pk)
     if not deleted:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
     return
